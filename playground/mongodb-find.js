@@ -1,6 +1,8 @@
 //this will fetch from mongodb
 
 // create two variables from mongodb - (without called multiple variables)
+// creates ObjectID
+// creates MongoClient
 const { MongoClient, ObjectID } = require(`mongodb`);
 
 
