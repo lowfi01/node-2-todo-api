@@ -12,8 +12,6 @@ var {user} = require('./models/user.js');
 // library imports
 const express = require('express');
 var bodyParser = require('body-parser');
-
-
 var app = express();
 
 // middleware - (takes the middle ware & access's it)
@@ -40,6 +38,17 @@ app.post('/todos', (req, res) => {
 });
 
 
+app.get('/todos', (req, res) => {
+    // .find() get everything 
+    Todo.find().then((todos) => {
+        // we could use todos[0], but passing an object allows for more customization {todos, text: 'example'}
+        res.send({todos});
+    }).catch((e) => {
+        res.status(400).send(e);
+    });
+});
+
+
 
 app.listen(3000, () => {
     console.log(`Server is live: Port 3000`);
@@ -47,8 +56,6 @@ app.listen(3000, () => {
 
 // export for testing purposes
 module.exports = {app};
-
-
 
 
 
