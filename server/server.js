@@ -45,7 +45,8 @@ app.listen(3000, () => {
     console.log(`Server is live: Port 3000`);
 })
 
-
+// export for testing purposes
+module.exports = {app};
 
 
 
