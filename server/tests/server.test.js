@@ -2,6 +2,7 @@
 
 const expect = require('expect');
 const request = require('supertest');
+const {ObjectId} = require('mongodb');
 
 
 const {app} = require('./../server');
@@ -12,8 +13,10 @@ const {mongoose} = require('./../db/mongoose');
 // create seed data - to beforeEach 
 // create array of dummy todos
 const todos = [{
+    _id:  new ObjectId(),
     text: 'First test todo'
 }, {
+    _id:  new ObjectId(),
     text: 'Second test todo'
 }];
 
@@ -76,7 +79,6 @@ describe('POST /todos', () => {
         });
 });
 
-
 describe('GET / todos', () => {
     it('should get all todos', (done) => {
         // supertest request
@@ -89,15 +91,50 @@ describe('GET / todos', () => {
                 // note the array [{0},{1}]
                 // res.body { todos [{ todo 1}, {todo 2}]}
                 // res.body.todos [{ todo 1}, {todo 2}]
-                console.log('res.body:  ',res.body);
-                console.log('res..body.todos: ', res.body.todos);
+                //console.log('res.body:  ',res.body);
+                //console.log('res..body.todos: ', res.body.todos);
                 expect(res.body.todos.length).toBe(2);
             })
-            // we do not need to attach function to .end - as this is not async
+            // we do not need to attach function to .end
             .end(done);
     })
 });
 
+// challenge 
+// test invalid ObjectId - send 404
+// test valid id, but does not match doc - send 404
+// test valid id & match's doc - doc is returned in response body
+
+describe('GET /todos/:id', () => {
+    it('should return todo doc', (done) => {
+        request(app)
+            // use _id from todo array & convert to string, using .toHexString()
+            .get(`/todos/${todos[0]._id.toHexString()}`)
+            .expect(200)
+            .expect((res) => {
+                // note - we passed a {doc} property in this route
+                expect(res.body.doc.text).toBe(todos[0].text);
+            })
+            .end(done)
+    });
+
+    it('should return 404 if todo not found',(done) => {
+        // use valid id and make invalid
+        // make sure to get 404 back
+        
+        request(app)
+            .get(`/todos/${new ObjectId().toHexString}`)
+            .expect(404)
+            .end(done)
+    });
+
+    it('should return 404 for non-object ids', (done) => {
+        request(app)
+            .get('/todos/123')
+            .expect(404)
+            .end(done)
+    });
+});
 
 
 /// - old code with comments

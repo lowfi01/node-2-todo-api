@@ -59,21 +59,21 @@ app.get(`/todos/:id`,(req, res) => {
     var id = req.params.id;
     // validate id
     if (!ObjectId.isValid(id)) {
-        console.log('Id is not valid');
+        console.log('_id is not valid');
         return res.status(404).send();
     }
-    Todo.findById(id).then((todo) => {
+    Todo.findById(id).then((doc) => {
         // no document by that id within collection
-        if (!todo) {
-            console.log('No Id by that Id lives in this collection');
-            return res.status(404).send('No Id by that Id lives in this collection');
+        if (!doc) {
+            console.log('No todo of that _id: lives in this collection');
+            return res.status(404).send();
         };
 
         // success case
         // note - we send {todo} object, as this sets it to {todo: {}}
         // note - we could simply pass send(todo) - but as this is an api, we would like to use res
         // eg - res.todo
-        res.send({todo});
+        res.send({doc});
     }).catch((e) => {
         // error handling
         res.status(400).send();
