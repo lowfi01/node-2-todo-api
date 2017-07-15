@@ -14,6 +14,7 @@ const {ObjectId} = require('mongodb');
 const express = require('express');
 var bodyParser = require('body-parser');
 var app = express();
+const port = process.env.PORT || 3000;
 
 // middleware - (takes the middle ware & access's it)
 // return value of bodyParser.json() - is the middleware we will use
@@ -83,10 +84,9 @@ app.get(`/todos/:id`,(req, res) => {
 
 });
 
-
-
-app.listen(3000, () => {
-    console.log(`Server is live: Port 3000`);
+// port variable for Heroku
+app.listen(port, () => {
+    console.log(`Server is live: Port ${port}`);
 })
 
 // export for testing purposes

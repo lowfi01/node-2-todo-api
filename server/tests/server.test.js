@@ -13,6 +13,7 @@ const {mongoose} = require('./../db/mongoose');
 // create seed data - to beforeEach 
 // create array of dummy todos
 const todos = [{
+    // create object id for testing
     _id:  new ObjectId(),
     text: 'First test todo'
 }, {
@@ -123,6 +124,7 @@ describe('GET /todos/:id', () => {
         // make sure to get 404 back
         
         request(app)
+            // create new ObjectId to ensure fail 
             .get(`/todos/${new ObjectId().toHexString}`)
             .expect(404)
             .end(done)
