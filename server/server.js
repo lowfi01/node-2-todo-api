@@ -86,7 +86,7 @@ app.get(`/todos/:id`,(req, res) => {
 
 // port variable for Heroku
 app.listen(port, () => {
-    console.log(`Server is live: Port ${port}`);
+    console.log('Server is live', port);
 })
 
 // export for testing purposes
