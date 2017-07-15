@@ -10,6 +10,7 @@ var {user} = require('./models/user.js');
 
 
 // library imports
+const {ObjectId} = require('mongodb');
 const express = require('express');
 var bodyParser = require('body-parser');
 var app = express();
@@ -46,6 +47,40 @@ app.get('/todos', (req, res) => {
     }).catch((e) => {
         res.status(400).send(e);
     });
+});
+
+// challenge - create api route, fetching an individual todo
+// GET /todos/id
+// URL parameter :id - creates id variable
+app.get(`/todos/:id`,(req, res) => {
+    // req - params, returns key value pares (key(:id): value(variable))
+    // Within postman - shows that using GET localhost://todos/1234 - will show a object { "id" : "1234"}
+    //res.send(req.params);
+    var id = req.params.id;
+    // validate id
+    if (!ObjectId.isValid(id)) {
+        console.log('Id is not valid');
+        return res.status(404).send();
+    }
+    Todo.findById(id).then((todo) => {
+        // no document by that id within collection
+        if (!todo) {
+            console.log('No Id by that Id lives in this collection');
+            return res.status(404).send('No Id by that Id lives in this collection');
+        };
+
+        // success case
+        // note - we send {todo} object, as this sets it to {todo: {}}
+        // note - we could simply pass send(todo) - but as this is an api, we would like to use res
+        // eg - res.todo
+        res.send({todo});
+    }).catch((e) => {
+        // error handling
+        res.status(400).send();
+        console.log('Catch error: ', e);
+    });
+
+
 });
 
 
