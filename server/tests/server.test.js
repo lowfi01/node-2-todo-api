@@ -127,7 +127,7 @@ describe('GET /todos/:id', () => {
             // create new ObjectId to ensure fail 
             .get(`/todos/${new ObjectId().toHexString}`)
             .expect(404)
-            .end(done)
+            .end(done);
     });
 
     it('should return 404 for non-object ids', (done) => {
@@ -138,6 +138,53 @@ describe('GET /todos/:id', () => {
     });
 });
 
+describe('DELETE /todos/:id', () => {
+    it('should remove a todo', (done) => {
+        var hexId = todos[1]._id.toHexString();
+
+        request(app)
+            .delete(`/todos/${hexId}`)
+            .expect(200)
+            .expect((res) => {
+                console.log(res.body.doc);
+                expect(res.body.doc._id).toBe(hexId);
+            })
+            //query the database
+            .end((err, res) => {
+                if (err) {
+                    // mocha will render error
+                    console.log('err fail');
+                    return done(err);
+                }
+
+                // query database - using findById, it should fail
+                // toNotExist
+                Todo.findById(hexId).then((doc) => {
+                    expect(doc).toNotExist();
+                    done();
+                }).catch((e) => {
+                    done(e);
+                });
+            });
+    });
+
+    it('should return 404 if todo not found', (done) => {
+
+        request(app)
+            .delete(`/todos/${new ObjectId().toHexString}`)
+            .expect(404)
+            .end(done);
+    });
+
+
+    it('should return 404 if object id is invalid', (done) => {
+           request(app)
+            .delete(`/todos/123`)
+            .expect(404)
+            .end(done);
+    });
+
+});
 
 /// - old code with comments
 
