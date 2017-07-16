@@ -61,14 +61,14 @@ app.get(`/todos/:id`,(req, res) => {
     var id = req.params.id;
     // validate id
     if (!ObjectId.isValid(id)) {
-        console.log('_id is not valid');
-        return res.status(404).send();
+        console.log('Could not delete,  _id is not valid.');
+        return res.status(404).send('404');
     }
     Todo.findById(id).then((doc) => {
         // no document by that id within collection
         if (!doc) {
-            console.log('No todo of that _id: lives in this collection');
-            return res.status(404).send();
+            console.log('Could not delete no todo of that _id: lives in this collection.');
+            return res.status(404).send('404');
         };
 
         // success case
@@ -78,11 +78,42 @@ app.get(`/todos/:id`,(req, res) => {
         res.send({doc});
     }).catch((e) => {
         // error handling
-        res.status(400).send();
-        console.log('Catch error: ', e);
+        return res.status(400).send('400');
+        console.log('DeleteByID Catch error: ', e);
     });
 
 
+});
+
+
+app.delete(`/todos/:id`, (req, res) => {
+    //GET id
+    var id = req.params.id;
+    // validate id - not valid return 404
+    if(!ObjectId.isValid(id)) {
+        console.log('_id Passed is invalid');
+        return res.status(404).send('404');
+    };
+
+    // remove todo by id
+    Todo.findByIdAndRemove(id).then((doc) => {
+        
+        // if no doc, send 404
+        if (!doc) {
+            console.log('No document found by that _id');
+            return res.status(404).send('404');
+        }
+        //success 
+        // if doc, send doc back with 200
+        res.status(200).send({doc});
+    }).catch((e) => {
+        //error
+            //400 with empty body
+        console.log('Catch error');
+        return res.status(400).send('400');
+    });
+    
+            
 });
 
 // port variable for Heroku
