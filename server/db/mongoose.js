@@ -11,7 +11,8 @@ let db = {
 // - (protocol:mongodb://URL/DatabaseName)
 // - mongoose will wait for connection before it runs any other code.
 //mongoose.connect(`mongodb://localhost:27017/TodoApp`, { useMongoClient: true });
-mongoose.connect( db.localhost || db.mlab, { useMongoClient: true });
+//mongoose.connect( db.localhost || db.mlab , { useMongoClient: true });
+mongoose.connect( db.mlab || db.localhost, { useMongoClient: true });
 
 
 module.exports = {
