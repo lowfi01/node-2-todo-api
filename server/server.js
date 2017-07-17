@@ -1,5 +1,5 @@
 // server.js - Is only responsible for routes
-
+require('./config/config');
 
 // destructing code
 // remember routing is relative to this file
@@ -9,14 +9,14 @@ var {Todo} = require('./models/todo');
 var {user} = require('./models/user.js');
 
 
-
 // library imports
 const _ = require('lodash');
 const {ObjectId} = require('mongodb');
 const express = require('express');
 const bodyParser = require('body-parser');
 const app = express();
-const port = process.env.PORT || 3000;
+//onst port = process.env.PORT || 3000;
+const port = process.env.PORT;
 
 // middleware - (takes the middle ware & access's it)
 // return value of bodyParser.json() - is the middleware we will use
