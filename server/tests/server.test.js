@@ -18,7 +18,9 @@ const todos = [{
     text: 'First test todo'
 }, {
     _id:  new ObjectId(),
-    text: 'Second test todo'
+    text: 'Second test todo',
+    completed: true,
+    completeAt: 333
 }];
 
 
@@ -185,6 +187,61 @@ describe('DELETE /todos/:id', () => {
     });
 
 });
+
+//Challenge - create patch testing
+//check one todo not completed & make it complete
+//check one todo that's completed & make it not complete
+describe('PATCH /todos/:id', () => {
+    it('should update the todo', (done) => {
+        // grab id of first todo
+        var hexId = todos[0]._id.toHexString();
+        // make patch require - send
+        var testText = "Hello World";
+
+        request(app)
+            .patch(`/todos/${hexId}`)
+        // update text, set completed true
+            .send({
+                text: testText,
+                completed: true
+            })
+        // assert 200, 
+            .expect(200)
+            .expect((res) => {
+                //console.log(res.body.doc);
+                //res.body.doc = { set: { test = testText } };
+                expect(res.body.doc.text).toBe(testText);
+                expect(res.body.doc.completedAt).toBeA('number');
+                expect(res.body.doc.completed).toBe(true);
+            })
+        // custom assertion, response body: text is changed, completed is true, completedAt is a number toBeA
+            .end(done)
+    });
+
+    it('should clear completedAt when todo is not complete', (done) => {
+        // grab id of second todo
+        var hexId = todos[1]._id.toHexString();
+        var text = "Hello World Again";
+        // update text, set completed to false
+        request(app)
+            .patch(`/todos/${hexId}`)
+            .send({
+                text: text,
+                completed: false
+            })
+            .expect(200)
+            .expect((res) => {
+                var url = res.body.doc;
+                expect(url.text).toBe(text);
+                expect(url.completed).toBe(false);
+                expect(url.completedAt).toNotExist();
+            })
+            .end(done);
+        // customer assertion, text is changed , completed is false, completed at is null toNotExist 
+    });
+});
+
+
 
 /// - old code with comments
 

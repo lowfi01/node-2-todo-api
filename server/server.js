@@ -139,13 +139,14 @@ app.patch('/todos/:id', (req,res) => {
 
     // note - _ is the lodash call
     if (_.isBoolean(body.completed) && body.completed) {
-        console.log(`check what body.completed is: `, body.completed);
+        
         // if - completed is boolean & is true
         // getTime - returns javascript timestamp, number of milliseconds since midnight from jan 1, 1970
         // note - values greater then zero, are milliseconds from that moment forward
         // note - values less then zero, are milliseconds from that moment backwards
         // note - this moment in time is the UNIX epic
         body.completedAt = new Date().getTime();
+        console.log(`check what body.completed is: `, body.completed);
     } else {
         // if - completed is not a boolean or is not true
         body.completed = false;
@@ -165,7 +166,7 @@ app.patch('/todos/:id', (req,res) => {
             return res.status(404).send('404');
         };
         res.send({doc});
-        console.log(`checking what body looks like after $set: ${body}`);
+        console.log(`checking what body looks like after $set: ${doc}`);
     }).catch((e) => {
         res.status(400).send();
     });
