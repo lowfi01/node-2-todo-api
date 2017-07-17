@@ -11,10 +11,11 @@ var {user} = require('./models/user.js');
 
 
 // library imports
+const _ = require('lodash');
 const {ObjectId} = require('mongodb');
 const express = require('express');
-var bodyParser = require('body-parser');
-var app = express();
+const bodyParser = require('body-parser');
+const app = express();
 const port = process.env.PORT || 3000;
 
 // middleware - (takes the middle ware & access's it)
@@ -114,6 +115,61 @@ app.delete(`/todos/:id`, (req, res) => {
     });
     
             
+});
+
+// challenge - create updating route
+// use - http patch method (use to update a resource)
+// note - get can delete todos, but it is good practice for API to use this method.
+app.patch('/todos/:id', (req,res) => {
+    var id = req.params.id;
+    // use body to prevent users from updating fields we do not want
+    // note - we are using lodash here _
+    // lodash.pick(takesObject, ['array of properties you want to pull from object'])
+    // note - we use this to limit the users to only updating these specific fields
+    var body = _.pick(req.body, ['text', 'completed']);
+
+    if(!ObjectId.isValid(id)) {
+        console.log('_id Passed is invalid');
+        return res.status(404).send('404');
+    };
+
+    // checking completed value & using value to set completed at
+    // if user is setting completed at - to true, we would like to know that timestamp
+    // if users is setting completed at - to false, we would like to clear that timestamp
+
+    // note - _ is the lodash call
+    if (_.isBoolean(body.completed) && body.completed) {
+        console.log(`check what body.completed is: `, body.completed);
+        // if - completed is boolean & is true
+        // getTime - returns javascript timestamp, number of milliseconds since midnight from jan 1, 1970
+        // note - values greater then zero, are milliseconds from that moment forward
+        // note - values less then zero, are milliseconds from that moment backwards
+        // note - this moment in time is the UNIX epic
+        body.completedAt = new Date().getTime();
+    } else {
+        // if - completed is not a boolean or is not true
+        body.completed = false;
+        // this will clear completedAt value, setting to null will remove value from database
+        body.completedAt = null;
+    }
+
+    //findByIdAndUpdate - updated document
+    // argument - (id to find, { field to update})
+    // reference mongodb-update, validation operators
+    // note - we are setting the body value to the updated body we have used above.
+    // note - {new: true} - is the same as returnOriginal : true - reference mongodb-update.js
+    Todo.findByIdAndUpdate(id, {$set: body}, {new: true}).then((doc)=> {
+        // note - doc, is the returned result of the promise, which is the request to findByIdAndUpdate 
+        // so this is the variable that holds that result
+        if (!doc) {
+            return res.status(404).send('404');
+        };
+        res.send({doc});
+        console.log(`checking what body looks like after $set: ${body}`);
+    }).catch((e) => {
+        res.status(400).send();
+    });
+
 });
 
 // port variable for Heroku
