@@ -6,7 +6,7 @@ require('./config/config');
 // local imports
 var {mongoose} = require('./db/mongoose.js');
 var {Todo} = require('./models/todo');
-var {user} = require('./models/user.js');
+var {User} = require('./models/user.js');
 
 
 // library imports
@@ -15,7 +15,7 @@ const {ObjectId} = require('mongodb');
 const express = require('express');
 const bodyParser = require('body-parser');
 const app = express();
-//onst port = process.env.PORT || 3000;
+//const port = process.env.PORT || 3000;
 const port = process.env.PORT;
 
 // middleware - (takes the middle ware & access's it)
@@ -172,6 +172,62 @@ app.patch('/todos/:id', (req,res) => {
     });
 
 });
+
+
+
+app.post('/users', (req, res) => {
+    var body = _.pick(req.body, ['email', 'password']);
+    var user = new User(body);
+  
+    // note - first promise .then is for .save
+    // note - second promise .then is the return from user.generateAuthToken
+    user.save().then(() => {
+        // return will give us a .then promise
+        // we specifically returned token in generateAuthToken code
+        // note - this is why we are using var user = this in the user model;
+        return user.generateAuthToken();
+    }).then((token) => {
+        // we use this token to manipulate the user.js schema
+        // this token is taken from the generateAuthToken method function () {}
+        // send back http header (take key: value)
+        // 'x-auth' creates custom header
+        res.header('x-auth', token).send(user);
+    }).catch((e) => {
+        res.status(400).send(e);
+        console.log(e);
+    });
+});
+
+
+// 
+// Note - Post /users method without auth
+//
+
+// // Challenge - create route to create new user
+// // POST http call /users
+// // reference newTodo POST /todo
+// app.post('/users', (req, res) => {
+//     // use lodash.pick to pull attributes from res.body url path input by user
+//     var body = _.pick(req.body, ['email', 'password']);
+//     // create user using picker - same as code below
+//     var user = new User(body);
+//     // // create new user
+//     // var user = new User(
+//     //     email : body.email,
+//     //     password : body.password,
+//     // });
+    
+//     // save user to database & res to http protocol with doc
+//     // returns promise + catch error
+//     user.save().then((doc) => {
+//         console.log(doc);
+//         res.send(doc);
+//     }).catch((e) => {
+//         res.status(400).send(e);
+//         console.log(e);
+//     });
+// });
+
 
 // port variable for Heroku
 app.listen(port, () => {
