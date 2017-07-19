@@ -7,6 +7,7 @@ require('./config/config');
 var {mongoose} = require('./db/mongoose.js');
 var {Todo} = require('./models/todo');
 var {User} = require('./models/user.js');
+var {authenticate} = require('./middleware/authenticate');
 
 
 // library imports
@@ -174,7 +175,6 @@ app.patch('/todos/:id', (req,res) => {
 });
 
 
-
 app.post('/users', (req, res) => {
     var body = _.pick(req.body, ['email', 'password']);
     var user = new User(body);
@@ -191,6 +191,7 @@ app.post('/users', (req, res) => {
         // this token is taken from the generateAuthToken method function () {}
         // send back http header (take key: value)
         // 'x-auth' creates custom header
+        // res.header = sets a header
         res.header('x-auth', token).send(user);
     }).catch((e) => {
         res.status(400).send(e);
@@ -198,6 +199,50 @@ app.post('/users', (req, res) => {
     });
 });
 
+
+
+
+// this uses Authenticate middleware - reference old code below
+app.get('/users/me', authenticate, (req, res) => {
+    // sends back - req.user
+    // note req.user is defined in the authentication middleware as the user returned from token request
+    res.send(req.user);
+});
+
+
+// port variable for Heroku
+app.listen(port, () => {
+    console.log('Server is live', port);
+})
+
+// export for testing purposes
+module.exports = {app};
+
+// 
+// Note - GET /users/me - without middleware
+//
+
+// // route for authentication
+// // find users, auth, send back
+// app.get('/users/me', (req, res) => {
+//     // res.header = sets a header value
+//     // req.header = get a header value
+//     var token = req.header('x-auth');
+
+//     // we are creating this model method in user.js
+//     User.findByToken(token).then((user) => {
+//         if (!user) {
+//             //because are catch already has the correct response, we will use this to move code to that solution
+//             return Promise.reject();
+//         };
+
+//         res.send(user);
+
+//     }).catch((e) => {
+//         res.status(401).send('Auth Failed')
+//         console.log(e);
+//     });
+// });
 
 // 
 // Note - Post /users method without auth
@@ -228,14 +273,6 @@ app.post('/users', (req, res) => {
 //     });
 // });
 
-
-// port variable for Heroku
-app.listen(port, () => {
-    console.log('Server is live', port);
-})
-
-// export for testing purposes
-module.exports = {app};
 
 
 

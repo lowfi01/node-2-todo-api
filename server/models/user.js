@@ -70,6 +70,37 @@ UserSchema.methods.generateAuthToken = function () {
     })
 };
 
+// model method - findByToken()
+// .static turns into model methods
+// note - we are using a token as the required argument passed when this function is called
+UserSchema.statics.findByToken = function (token) {
+    var User = this;
+    // note - we are leaving this variable undefined, so we can pass an error if verification fails
+    var decoded;
+
+    try{
+        decoded = jwt.verify(token, 'abc123')
+    } catch (e) {
+        // end function if token verify fails
+        // note - we create a new promise()
+        // this is because the function call uses chained promises in server.js
+        // return new Promise((resolve, reject) => {
+        //     reject('hello world!');
+        // });
+        return Promise.reject('Hello World im a custom promise reject call!!!');
+    }
+
+    // return so that when we call method, we can call a promise (alway for chaining .promises)
+    return User.findOne({
+        '_id': decoded._id,
+        // query nested document
+        // note - we are searching if array = token value passed
+        'tokens.token': token,
+        'tokens.access': 'auth'
+    });
+    
+};
+
 var User = mongoose.model('User', UserSchema);
 
 module.exports = {
