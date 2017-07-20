@@ -2,23 +2,45 @@
 // 256 = number of bits from resulting hash
 const {SHA256} = require('crypto-js');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 
-var data = {
-    id: 10
-};
+var password = '123abc!';
+
+// .getSalt - Hashs & salts
+// argument ('number of salt rounds),  (arrow function)', )
+bcrypt.genSalt(10, (err, salt) => {
+        // note this is a call back
+    bcrypt.hash(password, salt, (err, hash) => {
+        // note this is a call back
+        console.log(hash);
+    })
+});
 
 
-// takes data - object & secret
-// creates hash & returns the token value
-var token = jwt.sign(data, '123abc'); 
-console.log(token);
+var hashedPassword = '$2a$10$qLW0.Lrv6I0u5DjEitZyX.577RULMoOrLcL48SXBK1lnaFUDHNI0O';
+
+// .compare - compares plain value and hashed value & returns true or false
+// arguments - original password, hashedPassword & callback
+bcrypt.compare(password, hashedPassword, (err, res) => {
+    console.log(res);
+});
+
+// var data = {
+//     id: 10
+// };
 
 
-// takes the token & secret 
-// verifies data was not manipulated 
-// function will fail if token or secret is wrong
-var decoded = jwt.verify(token, '123abc');
-console.log(decoded);
+// // takes data - object & secret
+// // creates hash & returns the token value
+// var token = jwt.sign(data, '123abc'); 
+// console.log(token);
+
+
+// // takes the token & secret 
+// // verifies data was not manipulated 
+// // function will fail if token or secret is wrong
+// var decoded = jwt.verify(token, '123abc');
+// console.log(decoded);
 
 // 
 //  Note - the code below is the old code

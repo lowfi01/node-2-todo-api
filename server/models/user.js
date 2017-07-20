@@ -4,7 +4,7 @@ var mongoose = require(`mongoose`);
 const validator = require('validator');
 const jwt = require('jsonwebtoken');
 const _ = require('lodash');
-
+const bcrypt = require('bcryptjs');
 
 var UserSchema = new mongoose.Schema({
     email: {
@@ -14,6 +14,8 @@ var UserSchema = new mongoose.Schema({
         type: String,
         unique: true,
         validate: {
+            // note - mongoose requires this field
+            isAsync: false,
             validator: validator.isEmail,
             message: '{VALUE} is not a valid email'
         },
@@ -45,7 +47,7 @@ UserSchema.methods.toJSON = function () {
     var user = this;
     // converts user to object & returns only properties that are available in the document exist
     var userObject = user.toObject();
-    console.log(`override method call`,userObject);
+    console.log(`Hello i'm the UserSchema.methods.toJSON = function()`);
 
     // return lodash.pick & only return these specific properties to return
     return _.pick(userObject, ['_id','email']);
@@ -61,7 +63,8 @@ UserSchema.methods.generateAuthToken = function () {
 
     // push to the end of array syntax
     user.tokens.push({access, token});
-
+    console.log(`hello i'm the UserSchema.method.generateAuthToken = function()`);
+    console.log(`I have just pushed to the array [ updated access & token fields ]!! good job`);
     // Note above we are only updating the userModel, we must save it
     // note - we are returning this value so server.js can use a promise call
     // note - this return token will the success call for promise call in server.js
@@ -77,7 +80,7 @@ UserSchema.statics.findByToken = function (token) {
     var User = this;
     // note - we are leaving this variable undefined, so we can pass an error if verification fails
     var decoded;
-
+    console.log(`Hello i'm UserSchema.statics.findByToken = function`);
     try{
         decoded = jwt.verify(token, 'abc123')
     } catch (e) {
@@ -100,6 +103,40 @@ UserSchema.statics.findByToken = function (token) {
     });
     
 };
+
+
+// // .pre - this is middleware
+// // this will run before any save event! to the database
+// // next - will end call
+// // NOTE - this will create & insert the hashed password to the users, password fields in database
+UserSchema.pre('save', function (next) {
+    var user = this;
+    console.log(`hello i'm the UserSchema.pre() middleware :D`);
+    // check if password is modified
+    // as we only wish to run this hashing when generating a password, we use .isModified
+    // returns true if modified & false if not
+    if (user.isModified('password')) {
+        //challenge - integrate bcrypt to middleware
+        // note - we have access to password, user.password
+        bcrypt.genSalt(5, (err, salt) => {
+            console.log(`Still in .pre() & hashing your password & pushing to 'password'`);
+            bcrypt.hash(user.password, salt, (err, hash) => {
+                //console.log(`this is your password hash: ${hash}`);
+                // this will set a hashed password into the password field (user collection)
+                user.password = hash;
+                next();
+                
+            })
+        });
+    } else {
+        // if password is not modified then move on
+        next();
+    }
+});
+
+
+
+
 
 var User = mongoose.model('User', UserSchema);
 
