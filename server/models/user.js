@@ -60,7 +60,7 @@ UserSchema.methods.generateAuthToken = function () {
     var access = 'auth';
     // sign ({IdObject, Create & set access property}, 'Secret String')
     var token = jwt.sign({_id: user._id.toHexString(), access}, 'abc123').toString();
-
+    console.log(`I have just created a jwt.sign token with secret string`);
     // push to the end of array syntax
     user.tokens.push({access, token});
     console.log(`hello i'm the UserSchema.method.generateAuthToken = function()`);

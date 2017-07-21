@@ -10,28 +10,11 @@ const {Todo} = require('./../models/todo');
 const {User} = require('./../models/user');
 const {mongoose} = require('./../db/mongoose');
 
-// create seed data - to beforeEach 
-// create array of dummy todos
-const todos = [{
-    // create object id for testing
-    _id:  new ObjectId(),
-    text: 'First test todo'
-}, {
-    _id:  new ObjectId(),
-    text: 'Second test todo',
-    completed: true,
-    completeAt: 333
-}];
+const {todos, populateTodos, populateUsers, users} = require('./seed/seed');
 
+beforeEach(populateUsers);
+beforeEach(populateTodos);
 
-beforeEach((done) => {
-   Todo.remove({}).then(() => {
-        // this will insert test array into collection
-        // resulting - 2 documents
-        return Todo.insertMany(todos)
-    }).then(() => done());
-
-});
 
 describe('POST /todos', () => {
 
@@ -82,7 +65,7 @@ describe('POST /todos', () => {
         });
 });
 
-describe('GET / todos', () => {
+describe('GET /todos', () => {
     it('should get all todos', (done) => {
         // supertest request
         request(app)
@@ -100,7 +83,7 @@ describe('GET / todos', () => {
             })
             // we do not need to attach function to .end
             .end(done);
-    })
+    });
 });
 
 // challenge 
@@ -241,9 +224,126 @@ describe('PATCH /todos/:id', () => {
     });
 });
 
+describe('GET /users/me', () => {
+    // done = asynchronous test
+    it('should return user if authenticated', (done) => {
+        request(app)
+            .get('/users/me')
+            //set header (remember we set jwts token as authentication method)
+            .set('x-auth', users[0].tokens[0].token)
+            //once authentication is proven - expect 200 status
+            .expect(200)
+            .expect((res) => {
+                expect(res.body._id).toBe(users[0]._id.toHexString());
+                expect(res.body.email).toBe(users[0].email);
+            })
+            .end(done);
+        });
 
+
+    it('should return a 401 if not authenticated', (done) => {
+        // challenge
+        // do not provide x-auth token & 
+        // expect 401 status
+        // expect body is empty object
+        request(app)
+            .get('/users/me')
+            // expect 401 as we do not pass valid auth
+            .expect(401)
+            .expect((res) => {
+                //console.log('this is the body', res.body);
+                expect(res.body).toEqual({});
+            })
+            .end(done);
+    });
+});
+
+describe('POST /users', () => {
+    it('should create a user', (done) => {
+        var email = 'validAsf@example.com';
+        var password = 'validMe';
+
+
+        request(app)
+            .post('/users')
+            .send({
+                email : email,
+                password: password
+            })
+            .expect(200)
+            .expect((res) => {
+                expect(res.headers['x-auth']).toExist();
+                expect(res.body.email).toBe(email);
+                expect(res.body._id).toExist();
+
+            })
+            // arrow function to make a call to database & create test cases for database information
+            .end((err) => {
+                if (err) {
+                    return done(err);
+                };
+                User.findOne({email: email}).then((doc) => {
+                    expect(doc).toExist();
+                    expect(doc.email).toBe(email);
+                    // remember the password should have been hashed, so password should not match
+                    expect(doc.password).toNotBe(password);
+                    done();
+                });
+
+            });
+    });
+
+    it('should a return validation errors if request invalid', (done) => {
+        // challenge
+        // send invalid email, password
+        // expect 400
+         var email = 'invalidEmail';
+         var password = '12345';
+
+         request(app)
+            .post('/users')
+            .send({email, password})
+            .expect(400)
+            .end(done)
+    });
+
+    it('should not create user if email in use', (done) => {
+        // challenge
+        // send email we have already used 
+        // expect 400
+        request(app)
+            .post('/users')
+            .send({email : users[0].email})
+            .expect(400)
+            .end(done);
+
+    });
+});
 
 /// - old code with comments
+
+// // create seed data - to beforeEach 
+// // create array of dummy todos
+// const todos = [{
+//     // create object id for testing
+//     _id:  new ObjectId(),
+//     text: 'First test todo'
+// }, {
+//     _id:  new ObjectId(),
+//     text: 'Second test todo',
+//     completed: true,
+//     completeAt: 333
+// }];
+
+
+// beforeEach((done) => {
+//    Todo.remove({}).then(() => {
+//         // this will insert test array into collection
+//         // resulting - 2 documents
+//         return Todo.insertMany(todos)
+//     }).then(() => done());
+
+// });
 
 // // create seed data - to beforeEach 
 // // create array of dummy todos
