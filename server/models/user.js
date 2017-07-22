@@ -73,6 +73,28 @@ UserSchema.methods.generateAuthToken = function () {
     })
 };
 
+// instance method - Create path to delete token -auth header
+UserSchema.methods.removeToken = function (token) {
+    // we want to remove the token value from our tokens array
+    // - we will be using a mongodb operator here $pull
+
+    var user = this;
+    // user = document
+    // return - will result in promise trigger .then()
+    return user.update({
+        // mongodb pull operator
+        $pull: {
+            // pull from tokens array
+            tokens: {
+                // pull token key(field), that match's token value passed
+                // naming conversion - allows for es6 syntax {token}
+                token : token
+            }
+        }
+    });
+};
+
+
 // model method - findByToken()
 // .static turns into model methods
 // note - we are using a token as the required argument passed when this function is called

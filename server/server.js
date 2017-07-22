@@ -232,6 +232,17 @@ app.get('/users/me', authenticate, (req, res) => {
 });
 
 
+// Log out use & delete auth token
+app.delete('/users/me/token', authenticate, (req, res) => {
+    // we will create middleware removeToken()
+    req.user.removeToken(req.token).then(() => {
+        res.status(200).send()
+    }, () => {
+        // note - we are not using a catch, as this is the second callback
+        res.status(400).send();
+    })
+});
+
 // port variable for Heroku
 app.listen(port, () => {
     console.log('Server is live', port);

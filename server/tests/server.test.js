@@ -3,6 +3,7 @@
 const expect = require('expect');
 const request = require('supertest');
 const {ObjectId} = require('mongodb');
+const _ = require('lodash');
 
 
 const {app} = require('./../server');
@@ -288,7 +289,9 @@ describe('POST /users', () => {
                     // remember the password should have been hashed, so password should not match
                     expect(doc.password).toNotBe(password);
                     done();
-                });
+                }).catch((e) => {
+                    // if error within database, then return that error msg
+                    done(e)})
 
             });
     });
@@ -317,6 +320,73 @@ describe('POST /users', () => {
             .expect(400)
             .end(done);
 
+    });
+});
+
+
+describe('POST /users/login', () => {
+    it('should login user and return auth token', (done) => {
+        request(app)
+            // use this route
+            .post('/users/login')
+            // send this data with request
+            .send({
+                email: users[1].email,
+                password: users[1].password
+            })
+            // request worked
+            .expect(200)
+            // request data - has keyValue custom header['x-auth']
+            .expect((res) => {
+                expect(res.headers['x-auth']).toExist();
+            })
+            // check database - this is post creation of user
+            .end((err, res) => {
+                // if err - return done with error msg
+                if (err) {
+                    return done(err);
+                }
+                // find user & expect user document to be returned
+                User.findById({_id: users[1]._id}).then((user) => {
+                    // expect that user has these values
+                    expect(user.tokens[0]).toInclude({
+                        access : 'auth',
+                        token : res.headers['x-auth']
+                    });
+                    done();
+                }).catch((e) => {
+                    // if error within database, then return that error msg
+                    done(e);
+                })
+            });
+    });
+
+    it('should reject invalid login', (done) => {
+        
+        request(app)
+            .post('/users/login')
+            .send({
+                email : users[1].email,
+                password : users[1].password + '1'
+            })
+            .expect(400)
+            .expect((res) => {
+                expect(res.headers['x-auth']).toNotExist();
+            })
+        .end((err, res) => {
+                // if err - return done with error msg
+                if (err) {
+                    return done(err);
+                }
+                // find user & expect user document to be returned
+                User.findById({_id: users[1]._id}).then((user) => {
+                    // expect that user has these values
+                    expect(user.tokens.length).toBe(0);
+                    done();
+                }).catch((e) => {
+                    done(e);
+                })
+            });
     });
 });
 
