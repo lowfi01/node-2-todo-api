@@ -11,6 +11,7 @@ var {authenticate} = require('./middleware/authenticate');
 
 
 // library imports
+const bcrypt = require('bcryptjs');
 const _ = require('lodash');
 const {ObjectId} = require('mongodb');
 const express = require('express');
@@ -199,6 +200,27 @@ app.post('/users', (req, res) => {
     });
 });
 
+
+// POST /users/login {email, hashedPassword}
+// challenge  - setup route, pick off email + password
+// res - email and password back
+// - we are making this request to get a token :)
+app.post('/users/login', (req, res) => {
+    var body = _.pick(req.body, ['email', 'password']);
+    
+    // we are using model middleware here
+    User.findByCredentials(body.email, body.password).then((user) => {
+        // here we want to create a new token
+        // we return so .catch will resolve errors
+        return user.generateAuthToken().then((token) => {
+            res.header('x-auth', token).send(user);
+        })
+    }).catch((e) => {
+        // if no user was found path
+        res.status(400).send('400');
+    });
+    
+});
 
 
 

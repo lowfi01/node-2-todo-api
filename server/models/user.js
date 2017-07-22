@@ -47,7 +47,7 @@ UserSchema.methods.toJSON = function () {
     var user = this;
     // converts user to object & returns only properties that are available in the document exist
     var userObject = user.toObject();
-    console.log(`Hello i'm the UserSchema.methods.toJSON = function()`);
+    console.log(`Hello i'm the UserSchema.methods.toJSON = function(), I'm making sure to only return an object with _id & email properties`);
 
     // return lodash.pick & only return these specific properties to return
     return _.pick(userObject, ['_id','email']);
@@ -102,6 +102,34 @@ UserSchema.statics.findByToken = function (token) {
         'tokens.access': 'auth'
     });
     
+};
+
+//Model method
+// - used for login authentication, if true we will assign a token to user
+UserSchema.statics.findByCredentials = function (email, password) {
+    // note - we are only able to search by email, as password stored is hashed value
+    // Note - this call will use the variable User (in server.js not here, as server.js is calling it)
+    var User = this;
+    // note - we return this to allow a promise, returned method to be used
+    return User.findOne({email}).then((user) => {
+        if (!user) {
+            // this will trigger the catch phase in server.js
+            return Promise.reject();
+        };
+
+        // note - bcrypt does not use promises, it uses call back, so we simply user this wrapper to resolve that
+        return new Promise((resolve, reject) => {
+            // user bcrypt.compare - compare password & user
+            bcrypt.compare(password, user.password, (err, res) => {
+                if (res) {
+                    return resolve(user);
+                } else {
+                    return reject(err);
+                }
+                
+            });
+        });
+    })
 };
 
 
