@@ -24,6 +24,7 @@ describe('POST /todos', () => {
 
         request(app)
           .post('/todos')
+          .set('x-auth', users[0].tokens[0].token)
           .send({text})
           .expect(200)
           .expect((res) => {
@@ -50,6 +51,7 @@ describe('POST /todos', () => {
             
             request(app)
                 .post('/todos')
+                .set('x-auth', users[0].tokens[0].token)
                 .send({})
                 .expect(400)
                 .end((err, res) => {
@@ -67,10 +69,11 @@ describe('POST /todos', () => {
 });
 
 describe('GET /todos', () => {
-    it('should get all todos', (done) => {
+    it('should get all matching todos', (done) => {
         // supertest request
         request(app)
             .get('/todos')
+            .set('x-auth', users[0].tokens[0].token)
             // status check
             .expect(200)
             .expect((res) => {
@@ -80,7 +83,7 @@ describe('GET /todos', () => {
                 // res.body.todos [{ todo 1}, {todo 2}]
                 //console.log('res.body:  ',res.body);
                 //console.log('res..body.todos: ', res.body.todos);
-                expect(res.body.todos.length).toBe(2);
+                expect(res.body.todos.length).toBe(1);
             })
             // we do not need to attach function to .end
             .end(done);
@@ -97,6 +100,8 @@ describe('GET /todos/:id', () => {
         request(app)
             // use _id from todo array & convert to string, using .toHexString()
             .get(`/todos/${todos[0]._id.toHexString()}`)
+            // added line - to allow test to pass with authentication
+            .set('x-auth', users[0].tokens[0].token)
             .expect(200)
             .expect((res) => {
                 // note - we passed a {doc} property in this route
@@ -112,6 +117,8 @@ describe('GET /todos/:id', () => {
         request(app)
             // create new ObjectId to ensure fail 
             .get(`/todos/${new ObjectId().toHexString}`)
+            // added line - to allow test to pass with authentication
+            .set('x-auth', users[0].tokens[0].token)
             .expect(404)
             .end(done);
     });
@@ -119,6 +126,17 @@ describe('GET /todos/:id', () => {
     it('should return 404 for non-object ids', (done) => {
         request(app)
             .get('/todos/123')
+            // added line - to allow test to pass with authentication
+            .set('x-auth', users[0].tokens[0].token)
+            .expect(404)
+            .end(done)
+    });
+
+    // - new test case for authentication, test to ensure userOne cannot access userTwo's todos
+    it('should not return todo doc created by other user', (done) => {
+        request(app)
+            .get(`/todos/${todos[1]._id.toHexString()}`)
+            .set('x-auth', users[0].tokens[0].token)
             .expect(404)
             .end(done)
     });
@@ -130,6 +148,8 @@ describe('DELETE /todos/:id', () => {
 
         request(app)
             .delete(`/todos/${hexId}`)
+            // note - added line to allow for authentication
+            .set('x-auth', users[1].tokens[0].token)
             .expect(200)
             .expect((res) => {
                 console.log(res.body.doc);
@@ -158,6 +178,8 @@ describe('DELETE /todos/:id', () => {
 
         request(app)
             .delete(`/todos/${new ObjectId().toHexString}`)
+            // note - added line to allow for authentication
+            .set('x-auth', users[1].tokens[0].token)
             .expect(404)
             .end(done);
     });
@@ -166,10 +188,37 @@ describe('DELETE /todos/:id', () => {
     it('should return 404 if object id is invalid', (done) => {
            request(app)
             .delete(`/todos/123`)
+            // note - added line to allow for authentication
+            .set('x-auth', users[1].tokens[0].token)
             .expect(404)
             .end(done);
     });
 
+    // creating test case to ensure that userOne cannot delete userTwo's todos - authentication
+    it('should not remove a todo owned by another user', (done) => {
+        var hexId = todos[0]._id.toHexString();
+
+        request(app)
+            .delete(`/todos/${hexId}`)
+            // note - added line to allow for authentication
+            .set('x-auth', users[1].tokens[0].token)
+            .expect(404)
+            //query the database
+            .end((err, res) => {
+                if (err) {
+                    // mocha will render error
+                    console.log('err fail');
+                    return done(err);
+                }
+
+                Todo.findById(hexId).then((doc) => {
+                    expect(doc).toExist();
+                    done();
+                }).catch((e) => {
+                    done(e);
+                });
+            });
+    });
 });
 
 //Challenge - create patch testing
@@ -184,6 +233,7 @@ describe('PATCH /todos/:id', () => {
 
         request(app)
             .patch(`/todos/${hexId}`)
+            .set('x-auth', users[0].tokens[0].token)
         // update text, set completed true
             .send({
                 text: testText,
@@ -209,6 +259,7 @@ describe('PATCH /todos/:id', () => {
         // update text, set completed to false
         request(app)
             .patch(`/todos/${hexId}`)
+            .set('x-auth', users[1].tokens[0].token)
             .send({
                 text: text,
                 completed: false
@@ -223,6 +274,22 @@ describe('PATCH /todos/:id', () => {
             .end(done);
         // customer assertion, text is changed , completed is false, completed at is null toNotExist 
     });
+
+    it('should not update the todo of another user', (done) => {
+        var hexId = todos[0]._id.toHexString();
+        var testText = "Hello World";
+
+        request(app)
+            .patch(`/todos/${hexId}`)
+            .set('x-auth', users[1].tokens[0].token)
+            .send({
+                text: testText,
+                completed: true
+            })
+            .expect(404)
+            .end(done)
+    });
+    
 });
 
 describe('GET /users/me', () => {
@@ -349,7 +416,7 @@ describe('POST /users/login', () => {
                 // find user & expect user document to be returned
                 User.findById({_id: users[1]._id}).then((user) => {
                     // expect that user has these values
-                    expect(user.tokens[0]).toInclude({
+                    expect(user.tokens[1]).toInclude({
                         access : 'auth',
                         token : res.headers['x-auth']
                     });
@@ -381,7 +448,7 @@ describe('POST /users/login', () => {
                 // find user & expect user document to be returned
                 User.findById({_id: users[1]._id}).then((user) => {
                     // expect that user has these values
-                    expect(user.tokens.length).toBe(0);
+                    expect(user.tokens.length).toBe(1);
                     done();
                 }).catch((e) => {
                     done(e);

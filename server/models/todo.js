@@ -30,6 +30,12 @@ var Todo = mongoose.model(`Todo`, {
         type: Number,
         default: null
 
+    },
+    // validation for tokens - authentication(private)
+    _creator: {
+        // note - we are setting type to ObjectId
+        type: mongoose.Schema.Types.ObjectId,
+        required : true,
     }
 });
 

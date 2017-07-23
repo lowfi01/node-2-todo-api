@@ -25,14 +25,16 @@ const port = process.env.PORT;
 app.use(bodyParser.json());
 
 // creating new todo
-app.post('/todos', (req, res) => {
+// - adding authenticate, - will set token to allow access
+app.post('/todos', authenticate,(req, res) => {
     // create document - using req.body.text
     console.log(req.body.text);
     var todo = new Todo({
         // note - req.body - will return the object
         //        req.body.text - will return the parsed text
-        text: req.body.text
-        
+        text: req.body.text,
+        // - adding authentication & private path
+        _creator: req.user._id
     }); 
    
     // save doc & send back
@@ -43,44 +45,41 @@ app.post('/todos', (req, res) => {
     });
 });
 
-
-app.get('/todos', (req, res) => {
+// - adding authenticate, - will set token to allow access
+app.get('/todos', authenticate, (req, res) => {
     // .find() get everything 
-    Todo.find().then((todos) => {
+    // old code - Todo.find().then((todos)
+    // changed code - find only _creator : ObjectId that match users ObjectId
+    Todo.find({
+        _creator : req.user._id
+    }).then((todos) => {
         // we could use todos[0], but passing an object allows for more customization {todos, text: 'example'}
         res.send({todos});
+        // - adding authentication & private path
+        _creator: req.user._id
     }).catch((e) => {
         res.status(400).send(e);
     });
 });
 
-// challenge - create api route, fetching an individual todo
-// GET /todos/id
-// URL parameter :id - creates id variable
-app.get(`/todos/:id`,(req, res) => {
-    // req - params, returns key value pares (key(:id): value(variable))
-    // Within postman - shows that using GET localhost://todos/1234 - will show a object { "id" : "1234"}
-    //res.send(req.params);
+// new code with authentication - reference commented code below
+app.get(`/todos/:id`, authenticate,(req, res) => {
     var id = req.params.id;
-    // validate id
     if (!ObjectId.isValid(id)) {
         console.log('Could not delete,  _id is not valid.');
         return res.status(404).send('404');
     }
-    Todo.findById(id).then((doc) => {
-        // no document by that id within collection
+    // changed search to limit results to _id + _creator fields
+    Todo.findOne({
+        _id: id,
+        _creator: req.user._id
+    }).then((doc) => {
         if (!doc) {
             console.log('Could not delete no todo of that _id: lives in this collection.');
             return res.status(404).send('404');
         };
-
-        // success case
-        // note - we send {todo} object, as this sets it to {todo: {}}
-        // note - we could simply pass send(todo) - but as this is an api, we would like to use res
-        // eg - res.todo
         res.send({doc});
     }).catch((e) => {
-        // error handling
         return res.status(400).send('400');
         console.log('DeleteByID Catch error: ', e);
     });
@@ -88,8 +87,46 @@ app.get(`/todos/:id`,(req, res) => {
 
 });
 
+////
+//  Old code - pre authentication
+////
 
-app.delete(`/todos/:id`, (req, res) => {
+// // challenge - create api route, fetching an individual todo
+// // GET /todos/id
+// // URL parameter :id - creates id variable
+// app.get(`/todos/:id`,(req, res) => {
+//     // req - params, returns key value pares (key(:id): value(variable))
+//     // Within postman - shows that using GET localhost://todos/1234 - will show a object { "id" : "1234"}
+//     //res.send(req.params);
+//     var id = req.params.id;
+//     // validate id
+//     if (!ObjectId.isValid(id)) {
+//         console.log('Could not delete,  _id is not valid.');
+//         return res.status(404).send('404');
+//     }
+//     Todo.findById(id).then((doc) => {
+//         // no document by that id within collection
+//         if (!doc) {
+//             console.log('Could not delete no todo of that _id: lives in this collection.');
+//             return res.status(404).send('404');
+//         };
+
+//         // success case
+//         // note - we send {todo} object, as this sets it to {todo: {}}
+//         // note - we could simply pass send(todo) - but as this is an api, we would like to use res
+//         // eg - res.todo
+//         res.send({doc});
+//     }).catch((e) => {
+//         // error handling
+//         return res.status(400).send('400');
+//         console.log('DeleteByID Catch error: ', e);
+//     });
+
+
+// });
+
+// updated code to allow authentication 
+app.delete(`/todos/:id`, authenticate, (req, res) => {
     //GET id
     var id = req.params.id;
     // validate id - not valid return 404
@@ -99,7 +136,13 @@ app.delete(`/todos/:id`, (req, res) => {
     };
 
     // remove todo by id
-    Todo.findByIdAndRemove(id).then((doc) => {
+    //Todo.findByIdAndRemove(id).then((doc) => {
+        //updated code to allow for authentication searching
+    Todo.findOneAndRemove({
+        _id: id,
+        // note - id is the string passed to url, we require validation
+        _creator: req.user._id
+    }).then((doc) => {
         
         // if no doc, send 404
         if (!doc) {
@@ -119,15 +162,10 @@ app.delete(`/todos/:id`, (req, res) => {
             
 });
 
-// challenge - create updating route
-// use - http patch method (use to update a resource)
-// note - get can delete todos, but it is good practice for API to use this method.
-app.patch('/todos/:id', (req,res) => {
+
+/// - updated code for authentication - reference commented code below 
+app.patch('/todos/:id', authenticate, (req,res) => {
     var id = req.params.id;
-    // use body to prevent users from updating fields we do not want
-    // note - we are using lodash here _
-    // lodash.pick(takesObject, ['array of properties you want to pull from object'])
-    // note - we use this to limit the users to only updating these specific fields
     var body = _.pick(req.body, ['text', 'completed']);
 
     if(!ObjectId.isValid(id)) {
@@ -135,35 +173,17 @@ app.patch('/todos/:id', (req,res) => {
         return res.status(404).send('404');
     };
 
-    // checking completed value & using value to set completed at
-    // if user is setting completed at - to true, we would like to know that timestamp
-    // if users is setting completed at - to false, we would like to clear that timestamp
-
-    // note - _ is the lodash call
     if (_.isBoolean(body.completed) && body.completed) {
-        
-        // if - completed is boolean & is true
-        // getTime - returns javascript timestamp, number of milliseconds since midnight from jan 1, 1970
-        // note - values greater then zero, are milliseconds from that moment forward
-        // note - values less then zero, are milliseconds from that moment backwards
-        // note - this moment in time is the UNIX epic
         body.completedAt = new Date().getTime();
         console.log(`check what body.completed is: `, body.completed);
     } else {
-        // if - completed is not a boolean or is not true
         body.completed = false;
-        // this will clear completedAt value, setting to null will remove value from database
         body.completedAt = null;
     }
-
-    //findByIdAndUpdate - updated document
-    // argument - (id to find, { field to update})
-    // reference mongodb-update, validation operators
-    // note - we are setting the body value to the updated body we have used above.
-    // note - {new: true} - is the same as returnOriginal : true - reference mongodb-update.js
-    Todo.findByIdAndUpdate(id, {$set: body}, {new: true}).then((doc)=> {
-        // note - doc, is the returned result of the promise, which is the request to findByIdAndUpdate 
-        // so this is the variable that holds that result
+    Todo.findOneAndUpdate({
+        _id : id,
+        _creator : req.user._id
+    }, {$set: body}, {new: true}).then((doc)=> {
         if (!doc) {
             return res.status(404).send('404');
         };
@@ -174,6 +194,65 @@ app.patch('/todos/:id', (req,res) => {
     });
 
 });
+
+////////
+// - Old code pre authentication
+///////
+// // challenge - create updating route
+// // use - http patch method (use to update a resource)
+// // note - get can delete todos, but it is good practice for API to use this method.
+// app.patch('/todos/:id', (req,res) => {
+//     var id = req.params.id;
+//     // use body to prevent users from updating fields we do not want
+//     // note - we are using lodash here _
+//     // lodash.pick(takesObject, ['array of properties you want to pull from object'])
+//     // note - we use this to limit the users to only updating these specific fields
+//     var body = _.pick(req.body, ['text', 'completed']);
+
+//     if(!ObjectId.isValid(id)) {
+//         console.log('_id Passed is invalid');
+//         return res.status(404).send('404');
+//     };
+
+//     // checking completed value & using value to set completed at
+//     // if user is setting completed at - to true, we would like to know that timestamp
+//     // if users is setting completed at - to false, we would like to clear that timestamp
+
+//     // note - _ is the lodash call
+//     if (_.isBoolean(body.completed) && body.completed) {
+        
+//         // if - completed is boolean & is true
+//         // getTime - returns javascript timestamp, number of milliseconds since midnight from jan 1, 1970
+//         // note - values greater then zero, are milliseconds from that moment forward
+//         // note - values less then zero, are milliseconds from that moment backwards
+//         // note - this moment in time is the UNIX epic
+//         body.completedAt = new Date().getTime();
+//         console.log(`check what body.completed is: `, body.completed);
+//     } else {
+//         // if - completed is not a boolean or is not true
+//         body.completed = false;
+//         // this will clear completedAt value, setting to null will remove value from database
+//         body.completedAt = null;
+//     }
+
+//     //findByIdAndUpdate - updated document
+//     // argument - (id to find, { field to update})
+//     // reference mongodb-update, validation operators
+//     // note - we are setting the body value to the updated body we have used above.
+//     // note - {new: true} - is the same as returnOriginal : true - reference mongodb-update.js
+//     Todo.findByIdAndUpdate(id, {$set: body}, {new: true}).then((doc)=> {
+//         // note - doc, is the returned result of the promise, which is the request to findByIdAndUpdate 
+//         // so this is the variable that holds that result
+//         if (!doc) {
+//             return res.status(404).send('404');
+//         };
+//         res.send({doc});
+//         console.log(`checking what body looks like after $set: ${doc}`);
+//     }).catch((e) => {
+//         res.status(400).send();
+//     });
+
+// });
 
 
 app.post('/users', (req, res) => {

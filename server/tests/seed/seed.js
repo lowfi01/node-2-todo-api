@@ -22,18 +22,25 @@ const users = [{
     _id: userTwoId,
     email: 'iWillOverCome@example.com',
     password: 'userTwoPass',
+    tokens: [{
+        access: 'auth',
+        token: jwt.sign({_id: userTwoId.toHexString(), access: 'auth'}, 'abc123').toString()
+    }]
 }];
 
 // seed data for testing todos
 const todos = [{
     // create object id for testing
     _id:  new ObjectId(),
-    text: 'First test todo'
+    text: 'First test todo',
+    // create requires objectId
+    _creator: userOneId
 }, {
     _id:  new ObjectId(),
     text: 'Second test todo',
     completed: true,
-    completeAt: 333
+    completeAt: 333,
+    _creator: userTwoId
 }];
 
 
