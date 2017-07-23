@@ -59,7 +59,7 @@ UserSchema.methods.generateAuthToken = function () {
     var user = this;
     var access = 'auth';
     // sign ({IdObject, Create & set access property}, 'Secret String')
-    var token = jwt.sign({_id: user._id.toHexString(), access}, 'abc123').toString();
+    var token = jwt.sign({_id: user._id.toHexString(), access}, process.env.JWT_SECRET).toString();
     console.log(`I have just created a jwt.sign token with secret string`);
     // push to the end of array syntax
     user.tokens.push({access, token});
@@ -104,7 +104,7 @@ UserSchema.statics.findByToken = function (token) {
     var decoded;
     console.log(`Hello i'm UserSchema.statics.findByToken = function`);
     try{
-        decoded = jwt.verify(token, 'abc123')
+        decoded = jwt.verify(token, process.env.JWT_SECRET)
     } catch (e) {
         // end function if token verify fails
         // note - we create a new promise()
